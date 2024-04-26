@@ -11,6 +11,7 @@ func (h *handler) GetListPatients(ctx *gin.Context) {
 	res, err := h.service.GetListPatients(ctx)
 	if err != nil {
 		api.NewErrorResponse(ctx, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	ctx.JSON(http.StatusOK, res)

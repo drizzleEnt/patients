@@ -3,10 +3,15 @@ package patients
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/fs"
 	"os"
 
 	"github.com/drizzleent/patients/internal/model"
+	"github.com/drizzleent/patients/internal/repository/converter"
+	datamodel "github.com/drizzleent/patients/internal/repository/data_model"
+	"github.com/google/uuid"
 )
 
 const (
@@ -14,7 +19,6 @@ const (
 )
 
 type repo struct {
-	data    []byte
 	allJson []json.RawMessage
 }
 
@@ -33,8 +37,8 @@ func (r *repo) Load() error {
 	if err != nil {
 		return err
 	}
-	r.data = make([]byte, fd.Size())
-	_, err = file.Read(r.data)
+	data := make([]byte, fd.Size())
+	_, err = file.Read(data)
 	if err != nil {
 		if err != io.EOF {
 			return err
@@ -43,17 +47,16 @@ func (r *repo) Load() error {
 
 	allJson := []json.RawMessage{}
 
-	err = json.Unmarshal(r.data, &allJson)
+	err = json.Unmarshal(data, &allJson)
 	if err != nil {
 		return err
 	}
-
 	r.allJson = allJson
 	return nil
 }
 
-func (r *repo) GetListPatients(ctx context.Context) (*[]model.Patient, error) {
-	res := make([]model.Patient, len(r.allJson))
+func (r *repo) GetListPatients(_ context.Context) (*[]model.Patient, error) {
+	res := make([]datamodel.Patient, len(r.allJson))
 
 	for i, v := range r.allJson {
 		err := json.Unmarshal(v, &res[i])
@@ -64,11 +67,29 @@ func (r *repo) GetListPatients(ctx context.Context) (*[]model.Patient, error) {
 
 	}
 
-	return &res, nil
+	return converter.FromInmemmroyToModelList(&res), nil
 }
 
-func (r *repo) NewPatient(ctx context.Context) {
+func (r *repo) NewPatient(ctx context.Context, p *model.Patient) (uuid.UUID, error) {
+	id := uuid.New()
+	p.Guid = id
+	data, err := json.Marshal(p)
 
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	r.allJson = append(r.allJson, data)
+	for _, v := range r.allJson {
+		fmt.Println(string(v))
+	}
+
+	err = r.saveInFile()
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return id, nil
 }
 
 func (r *repo) EditPatient(ctx context.Context) {
@@ -76,5 +97,19 @@ func (r *repo) EditPatient(ctx context.Context) {
 }
 
 func (r *repo) DelPatient(ctx context.Context) {
+
+}
+
+func (r *repo) saveInFile() error {
+	data, err := json.Marshal(r.allJson)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(filePath, data, fs.ModeAppend)
+	if err != nil {
+		return err
+	}
+
+	return nil
 
 }
