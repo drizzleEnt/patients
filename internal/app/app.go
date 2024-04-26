@@ -20,7 +20,7 @@ func New(ctx context.Context) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	a.serviceProvider.Repository(ctx).Load()
 	return a, nil
 }
 
@@ -31,10 +31,6 @@ func (a *App) Run() error {
 	}
 
 	return nil
-}
-
-func load() error {
-
 }
 
 func (a *App) initDebs(ctx context.Context) error {
