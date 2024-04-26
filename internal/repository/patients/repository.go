@@ -19,11 +19,12 @@ const (
 )
 
 type repo struct {
-	allJson []json.RawMessage
+	patients map[string]datamodel.Patient
 }
 
 func NewRepository() *repo {
-	return &repo{}
+	r := &repo{}
+	return r
 }
 
 func (r *repo) Load() error {
@@ -44,33 +45,34 @@ func (r *repo) Load() error {
 			return err
 		}
 	}
-
 	allJson := []json.RawMessage{}
 
 	err = json.Unmarshal(data, &allJson)
 	if err != nil {
 		return err
 	}
-	r.allJson = allJson
+	r.patients = map[string]datamodel.Patient{}
+	for _, v := range allJson {
+		p, err := converter.FromRawJsonToDataModel(v)
+		if err != nil {
+			return err
+		}
+		r.patients[p.Guid.String()] = *p
+	}
 	return nil
 }
 
 func (r *repo) GetListPatients(_ context.Context) (*[]model.Patient, error) {
-	res := make([]datamodel.Patient, len(r.allJson))
+	res := make([]datamodel.Patient, 0, len(r.patients))
 
-	for i, v := range r.allJson {
-		err := json.Unmarshal(v, &res[i])
-
-		if err != nil {
-			return nil, err
-		}
-
+	for _, v := range r.patients {
+		res = append(res, v)
 	}
 
 	return converter.FromInmemmroyToModelList(&res), nil
 }
 
-func (r *repo) NewPatient(ctx context.Context, p *model.Patient) (uuid.UUID, error) {
+func (r *repo) NewPatient(_ context.Context, p *model.Patient) (uuid.UUID, error) {
 	id := uuid.New()
 	p.Guid = id
 	data, err := json.Marshal(p)
@@ -79,10 +81,11 @@ func (r *repo) NewPatient(ctx context.Context, p *model.Patient) (uuid.UUID, err
 		return uuid.Nil, err
 	}
 
-	r.allJson = append(r.allJson, data)
-	for _, v := range r.allJson {
-		fmt.Println(string(v))
+	dataPatient, err := converter.FromJsonToDataModel(data)
+	if err != nil {
+		return uuid.Nil, err
 	}
+	r.patients[id.String()] = *dataPatient
 
 	err = r.saveInFile()
 	if err != nil {
@@ -96,15 +99,33 @@ func (r *repo) EditPatient(ctx context.Context) {
 
 }
 
-func (r *repo) DelPatient(ctx context.Context) {
+func (r *repo) DelPatient(_ context.Context, id string) error {
+	_, ok := r.patients[id]
+	if !ok {
+		return fmt.Errorf("patient with id %s does not exist", id)
+	}
+	delete(r.patients, id)
 
-}
+	err := r.saveInFile()
 
-func (r *repo) saveInFile() error {
-	data, err := json.Marshal(r.allJson)
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r *repo) saveInFile() (err error) {
+	ps := make([]datamodel.Patient, 0, len(r.patients))
+	for _, v := range r.patients {
+		ps = append(ps, v)
+	}
+	data, err := json.Marshal(ps)
+
+	if err != nil {
+		return err
+	}
+
 	err = os.WriteFile(filePath, data, fs.ModeAppend)
 	if err != nil {
 		return err

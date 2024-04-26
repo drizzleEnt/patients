@@ -11,6 +11,6 @@ type Repository interface {
 	GetListPatients(context.Context) (*[]model.Patient, error)
 	NewPatient(context.Context, *model.Patient) (uuid.UUID, error)
 	EditPatient(context.Context)
-	DelPatient(context.Context)
+	DelPatient(context.Context, string) error
 	Load() error
 }

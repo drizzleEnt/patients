@@ -20,7 +20,6 @@ func New(ctx context.Context) (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.serviceProvider.Repository(ctx).Load()
 	return a, nil
 }
 
@@ -38,6 +37,7 @@ func (a *App) initDebs(ctx context.Context) error {
 		a.initConfig,
 		a.initServiceProvider,
 		a.initHttpServer,
+		a.initFile,
 	}
 
 	for _, f := range inits {
@@ -61,6 +61,9 @@ func (a *App) initConfig(_ context.Context) error {
 	}
 
 	return nil
+}
+func (a *App) initFile(ctx context.Context) error {
+	return a.serviceProvider.Repository(ctx).Load()
 }
 
 func (a *App) initHttpServer(ctx context.Context) error {
