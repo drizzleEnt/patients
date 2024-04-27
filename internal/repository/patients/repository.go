@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"sync"
 
 	"github.com/drizzleent/patients/internal/model"
 	"github.com/drizzleent/patients/internal/repository/converter"
@@ -19,6 +20,7 @@ const (
 )
 
 type repo struct {
+	m        sync.RWMutex
 	patients map[string]datamodel.Patient
 }
 
@@ -63,6 +65,8 @@ func (r *repo) Load() error {
 }
 
 func (r *repo) GetListPatients(_ context.Context) (*[]model.Patient, error) {
+	r.m.Lock()
+	defer r.m.Unlock()
 	res := make([]datamodel.Patient, 0, len(r.patients))
 
 	for _, v := range r.patients {
@@ -85,9 +89,13 @@ func (r *repo) NewPatient(_ context.Context, p *model.Patient) (uuid.UUID, error
 	if err != nil {
 		return uuid.Nil, err
 	}
+	r.m.Lock()
+
 	r.patients[id.String()] = *dataPatient
 
 	err = r.saveInFile()
+	r.m.Unlock()
+
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -96,6 +104,8 @@ func (r *repo) NewPatient(_ context.Context, p *model.Patient) (uuid.UUID, error
 }
 
 func (r *repo) EditPatient(ctx context.Context, id string, p *model.Patient) error {
+	r.m.Lock()
+	defer r.m.Unlock()
 	patient, ok := r.patients[id]
 	if !ok {
 		return fmt.Errorf("patient with id %s does not exist", id)
@@ -113,6 +123,8 @@ func (r *repo) EditPatient(ctx context.Context, id string, p *model.Patient) err
 }
 
 func (r *repo) DelPatient(_ context.Context, id string) error {
+	r.m.Lock()
+	defer r.m.Unlock()
 	_, ok := r.patients[id]
 	if !ok {
 		return fmt.Errorf("patient with id %s does not exist", id)
@@ -129,6 +141,7 @@ func (r *repo) DelPatient(_ context.Context, id string) error {
 }
 
 func (r *repo) saveInFile() (err error) {
+
 	ps := make([]datamodel.Patient, 0, len(r.patients))
 	for _, v := range r.patients {
 		ps = append(ps, v)

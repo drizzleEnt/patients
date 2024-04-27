@@ -11,6 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const (
+	gender = "gender"
+	create = "create"
+	id     = "id"
+)
+
 func FromReqToPatient(c *gin.Context) (*model.Patient, int, error) {
 	var patient model.Patient
 	body, err := io.ReadAll(c.Request.Body)
@@ -24,14 +30,20 @@ func FromReqToPatient(c *gin.Context) (*model.Patient, int, error) {
 		return nil, http.StatusInternalServerError, err
 	}
 
-	if strings.Contains(string(body), "gender") {
+	if strings.Contains(c.Request.URL.Path, create) {
+		if patient.Fullname == "" || patient.Birthday == "" {
+			return nil, http.StatusBadRequest, errors.New("patient name or birthday requared")
+		}
+	}
+
+	if strings.Contains(string(body), gender) {
 		patient.IsGenderValid = true
 	}
 	return &patient, http.StatusOK, nil
 }
 
 func FromReqToId(c *gin.Context) (string, int, error) {
-	key := c.Param("id")
+	key := c.Param(id)
 	if len(key) == 0 {
 		return "", http.StatusBadRequest, errors.New("patient id is requared")
 	}
