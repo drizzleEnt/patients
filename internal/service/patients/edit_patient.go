@@ -2,9 +2,15 @@ package patients
 
 import (
 	"context"
-	"fmt"
+
+	"github.com/drizzleent/patients/internal/model"
 )
 
-func (s *srv) EditPatient(ctx context.Context) {
-	fmt.Println("edit")
+func (s *srv) EditPatient(ctx context.Context, id string, p *model.Patient) error {
+	err := s.repo.EditPatient(ctx, id, p)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

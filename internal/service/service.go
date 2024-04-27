@@ -8,8 +8,8 @@ import (
 )
 
 type ApiService interface {
-	GetListPatients(context.Context) (*[]model.Patient, error)
+	GetListPatients(context.Context) (*[]model.ReqPatient, error)
 	NewPatient(context.Context, *model.Patient) (uuid.UUID, error)
-	EditPatient(context.Context)
+	EditPatient(context.Context, string, *model.Patient) error
 	DelPatient(context.Context, string) error
 }

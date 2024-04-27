@@ -22,7 +22,7 @@ func (h *handler) InitRoutes() *gin.Engine {
 	{
 		api.GET("/", h.GetListPatients)
 		api.POST("/create", h.NewPatient)
-		api.POST("/edit", h.EditPatient)
+		api.POST("/edit/:id", h.EditPatient)
 		api.POST("/delete/:id", h.DelPatient)
 
 	}

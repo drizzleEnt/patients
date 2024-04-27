@@ -3,14 +3,19 @@ package patients
 import (
 	"context"
 
+	"github.com/drizzleent/patients/internal/converter"
 	"github.com/drizzleent/patients/internal/model"
 )
 
-func (s *srv) GetListPatients(ctx context.Context) (*[]model.Patient, error) {
+func (s *srv) GetListPatients(ctx context.Context) (*[]model.ReqPatient, error) {
 
-	res, err := s.repo.GetListPatients(ctx)
+	patients, err := s.repo.GetListPatients(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	res := make([]model.ReqPatient, 0, len(*patients))
+	for _, v := range *patients {
+		res = append(res, *converter.FromPatientToReq(&v))
+	}
+	return &res, nil
 }

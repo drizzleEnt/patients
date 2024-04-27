@@ -39,3 +39,18 @@ func FromRawJsonToDataModel(data json.RawMessage) (*datamodel.Patient, error) {
 	}
 	return &p, nil
 }
+
+func ToUpdate(oldP *datamodel.Patient, newP model.Patient) *datamodel.Patient {
+
+	if len(newP.Fullname) != 0 {
+		oldP.Fullname = newP.Fullname
+	}
+	if len(newP.Birthday) != 0 {
+		oldP.Birthday = newP.Birthday
+	}
+	if newP.IsGenderValid {
+		oldP.Gender = newP.Gender
+	}
+
+	return oldP
+}

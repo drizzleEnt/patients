@@ -95,8 +95,21 @@ func (r *repo) NewPatient(_ context.Context, p *model.Patient) (uuid.UUID, error
 	return id, nil
 }
 
-func (r *repo) EditPatient(ctx context.Context) {
+func (r *repo) EditPatient(ctx context.Context, id string, p *model.Patient) error {
+	patient, ok := r.patients[id]
+	if !ok {
+		return fmt.Errorf("patient with id %s does not exist", id)
+	}
+	res := converter.ToUpdate(&patient, *p)
 
+	r.patients[id] = *res
+
+	err := r.saveInFile()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *repo) DelPatient(_ context.Context, id string) error {
